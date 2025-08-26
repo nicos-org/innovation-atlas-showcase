@@ -38,6 +38,18 @@ export const WorldMap = ({ data }: WorldMapProps) => {
     
     svg.attr("viewBox", `0 0 ${width} ${height}`);
 
+    // Create a group for zoomable content
+    const g = svg.append("g");
+
+    // Set up zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 8])
+      .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+      });
+
+    svg.call(zoom);
+
     // Create a map from country names to innovation counts
     const countryMap = new Map();
     data.forEach(d => {
@@ -80,7 +92,7 @@ export const WorldMap = ({ data }: WorldMapProps) => {
           const countries: any = topojson.feature(world, world.objects.countries);
 
           // Create the map
-          svg.selectAll("path")
+          g.selectAll("path")
             .data(countries.features)
             .enter()
             .append("path")
@@ -218,6 +230,9 @@ export const WorldMap = ({ data }: WorldMapProps) => {
           <h2 className="text-2xl font-bold text-foreground">Global Innovation Choropleth</h2>
           <p className="text-muted-foreground mt-2">
             Countries colored by innovation density. Darker blue indicates more innovations.
+          </p>
+          <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+            💡 Use mouse wheel to zoom in/out, click and drag to pan
           </p>
         </div>
         
