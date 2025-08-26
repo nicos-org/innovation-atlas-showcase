@@ -1,12 +1,94 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from "react";
+import { InnovationBanner } from "@/components/InnovationBanner";
+import { WorldMap } from "@/components/WorldMap";
+import { loadAndProcessCSV, type CountryInnovationCount } from "@/utils/csvParser";
+import { toast } from "sonner";
 
 const Index = () => {
+  const [isMapVisible, setIsMapVisible] = useState(false);
+  const [innovationData, setInnovationData] = useState<CountryInnovationCount[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isMapVisible && innovationData.length === 0) {
+      loadData();
+    }
+  }, [isMapVisible, innovationData.length]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const data = await loadAndProcessCSV();
+      setInnovationData(data);
+      toast.success(`Loaded ${data.length} countries with innovation data`);
+    } catch (error) {
+      console.error("Failed to load innovation data:", error);
+      toast.error("Failed to load innovation data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleMap = () => {
+    setIsMapVisible(!isMapVisible);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background">
+      <InnovationBanner
+        isExpanded={isMapVisible}
+        onToggle={handleToggleMap}
+      />
+      
+      <div className="container mx-auto px-6">
+        <div
+          className={`transition-all duration-500 ease-bounce overflow-hidden ${
+            isMapVisible 
+              ? "max-h-[2000px] opacity-100 py-8" 
+              : "max-h-0 opacity-0 py-0"
+          }`}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="mt-4 text-muted-foreground">Loading innovation data...</p>
+              </div>
+            </div>
+          ) : (
+            <WorldMap data={innovationData} />
+          )}
+        </div>
       </div>
+
+      {/* Footer with stats */}
+      {isMapVisible && innovationData.length > 0 && (
+        <div className="container mx-auto px-6 pb-8">
+          <div className="bg-gradient-subtle rounded-xl p-6 shadow-soft">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Innovation Statistics</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-innovation">
+                  {innovationData.length}
+                </div>
+                <div className="text-sm text-muted-foreground">Countries</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-innovation-secondary">
+                  {innovationData.reduce((sum, country) => sum + country.count, 0)}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Innovations</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">
+                  {Math.max(...innovationData.map(country => country.count))}
+                </div>
+                <div className="text-sm text-muted-foreground">Max per Country</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
