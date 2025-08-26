@@ -61,8 +61,8 @@ export const WorldMap = ({ data }: WorldMapProps) => {
 
     const path = d3.geoPath().projection(projection);
 
-    // Load world data
-    d3.json("https://unpkg.com/world-atlas@3/countries-110m.json").then((world: any) => {
+    // Load world data from a more reliable source
+    d3.json("https://cdn.jsdelivr.net/npm/world-atlas@3/countries-110m.json").then((world: any) => {
       const countries = feature(world, world.objects.countries) as any;
 
       svg.selectAll("path")
@@ -73,18 +73,18 @@ export const WorldMap = ({ data }: WorldMapProps) => {
         .attr("fill", (d: any) => {
           const countryName = d.properties.name.toLowerCase();
           const count = countryMap.get(countryName) || 0;
-          return count > 0 ? colorScale(count) : "#f0f0f0";
+          return count > 0 ? colorScale(count) : "#f8f9fa";
         })
-        .attr("stroke", "#fff")
+        .attr("stroke", "#e5e7eb")
         .attr("stroke-width", 0.5)
-        .attr("class", "transition-smooth cursor-pointer")
+        .attr("class", "transition-all duration-200 cursor-pointer hover:brightness-110")
         .on("mouseover", function(event: any, d: any) {
           const countryName = d.properties.name.toLowerCase();
           const count = countryMap.get(countryName) || 0;
           
           d3.select(this)
             .attr("stroke-width", 2)
-            .attr("stroke", "#2563eb");
+            .attr("stroke", "hsl(214 84% 56%)");
 
           setTooltip({
             x: event.pageX,
@@ -104,7 +104,7 @@ export const WorldMap = ({ data }: WorldMapProps) => {
         .on("mouseout", function() {
           d3.select(this)
             .attr("stroke-width", 0.5)
-            .attr("stroke", "#fff");
+            .attr("stroke", "#e5e7eb");
 
           setTooltip(prev => ({ ...prev, visible: false }));
         });
@@ -112,7 +112,16 @@ export const WorldMap = ({ data }: WorldMapProps) => {
       toast.success("World map loaded successfully!");
     }).catch((error) => {
       console.error("Error loading world map:", error);
-      toast.error("Failed to load world map data");
+      // Fallback: create a simple text-based display
+      svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", height / 2)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "16")
+        .attr("fill", "#64748b")
+        .text("Map data temporarily unavailable");
+      
+      toast.error("Map visualization unavailable - showing data below");
     });
 
   }, [data]);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { InnovationBanner } from "@/components/InnovationBanner";
 import { WorldMap } from "@/components/WorldMap";
+import { CountryList } from "@/components/CountryList";
 import { loadAndProcessCSV, type CountryInnovationCount } from "@/utils/csvParser";
 import { toast } from "sonner";
 
@@ -56,7 +57,10 @@ const Index = () => {
               </div>
             </div>
           ) : (
-            <WorldMap data={innovationData} />
+            <div>
+              <WorldMap data={innovationData} />
+              <CountryList data={innovationData} />
+            </div>
           )}
         </div>
       </div>
