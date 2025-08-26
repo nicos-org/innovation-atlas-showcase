@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { feature } from "topojson-client";
 import { toast } from "sonner";
 
 interface CountryData {
@@ -11,6 +10,29 @@ interface CountryData {
 interface WorldMapProps {
   data: CountryData[];
 }
+
+// Simple country positions for visualization (approximate coordinates)
+const countryPositions: Record<string, { x: number; y: number; region: string }> = {
+  "united states": { x: 200, y: 180, region: "North America" },
+  "singapore": { x: 700, y: 280, region: "Asia" },
+  "germany": { x: 480, y: 140, region: "Europe" },
+  "japan": { x: 740, y: 170, region: "Asia" },
+  "india": { x: 650, y: 220, region: "Asia" },
+  "china": { x: 680, y: 160, region: "Asia" },
+  "russia": { x: 580, y: 100, region: "Europe/Asia" },
+  "canada": { x: 180, y: 120, region: "North America" },
+  "south korea": { x: 720, y: 170, region: "Asia" },
+  "united arab emirates": { x: 580, y: 240, region: "Middle East" },
+  "united kingdom": { x: 460, y: 130, region: "Europe" },
+  "france": { x: 470, y: 150, region: "Europe" },
+  "italy": { x: 490, y: 170, region: "Europe" },
+  "argentina": { x: 280, y: 350, region: "South America" },
+  "israel": { x: 520, y: 230, region: "Middle East" },
+  "switzerland": { x: 480, y: 150, region: "Europe" },
+  "brazil": { x: 300, y: 300, region: "South America" },
+  "netherlands": { x: 470, y: 140, region: "Europe" },
+  "sweden": { x: 490, y: 110, region: "Europe" },
+};
 
 export const WorldMap = ({ data }: WorldMapProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -35,17 +57,14 @@ export const WorldMap = ({ data }: WorldMapProps) => {
     svg.selectAll("*").remove();
 
     const width = 960;
-    const height = 500;
+    const height = 400;
     
     svg.attr("viewBox", `0 0 ${width} ${height}`);
 
     // Create a map from country names to innovation counts
     const countryMap = new Map();
     data.forEach(d => {
-      // Handle common country name variations
-      let countryName = d.country.toLowerCase();
-      if (countryName === "united states") countryName = "united states of america";
-      if (countryName === "united kingdom") countryName = "united kingdom";
+      const countryName = d.country.toLowerCase();
       countryMap.set(countryName, d.count);
     });
 
@@ -54,75 +73,98 @@ export const WorldMap = ({ data }: WorldMapProps) => {
     const colorScale = d3.scaleSequential(d3.interpolateBlues)
       .domain([0, maxCount]);
 
-    // Projection
-    const projection = d3.geoNaturalEarth1()
-      .scale(150)
-      .translate([width / 2, height / 2]);
+    // Size scale for circles
+    const sizeScale = d3.scaleLinear()
+      .domain([0, maxCount])
+      .range([8, 40]);
 
-    const path = d3.geoPath().projection(projection);
+    // Add background continents (simplified shapes)
+    const continents = [
+      { name: "North America", path: "M50,120 Q200,80 350,120 L350,200 Q200,240 50,200 Z", color: "#f8f9fa" },
+      { name: "South America", path: "M250,280 Q300,260 350,280 L350,380 Q300,400 250,380 Z", color: "#f8f9fa" },
+      { name: "Europe", path: "M420,100 Q520,80 580,100 L580,180 Q520,200 420,180 Z", color: "#f8f9fa" },
+      { name: "Asia", path: "M580,80 Q720,60 860,80 L860,280 Q720,300 580,280 Z", color: "#f8f9fa" },
+      { name: "Africa", path: "M460,200 Q540,180 580,200 L580,320 Q540,340 460,320 Z", color: "#f8f9fa" },
+    ];
 
-    // Load world data from a more reliable source
-    d3.json("https://cdn.jsdelivr.net/npm/world-atlas@3/countries-110m.json").then((world: any) => {
-      const countries = feature(world, world.objects.countries) as any;
+    // Draw continents
+    svg.selectAll(".continent")
+      .data(continents)
+      .enter()
+      .append("path")
+      .attr("class", "continent")
+      .attr("d", d => d.path)
+      .attr("fill", d => d.color)
+      .attr("stroke", "#e5e7eb")
+      .attr("stroke-width", 1);
 
-      svg.selectAll("path")
-        .data(countries.features)
-        .enter()
-        .append("path")
-        .attr("d", path)
-        .attr("fill", (d: any) => {
-          const countryName = d.properties.name.toLowerCase();
-          const count = countryMap.get(countryName) || 0;
-          return count > 0 ? colorScale(count) : "#f8f9fa";
-        })
-        .attr("stroke", "#e5e7eb")
-        .attr("stroke-width", 0.5)
-        .attr("class", "transition-all duration-200 cursor-pointer hover:brightness-110")
-        .on("mouseover", function(event: any, d: any) {
-          const countryName = d.properties.name.toLowerCase();
-          const count = countryMap.get(countryName) || 0;
-          
-          d3.select(this)
-            .attr("stroke-width", 2)
-            .attr("stroke", "hsl(214 84% 56%)");
+    // Add country circles
+    const countries = data.filter(d => countryPositions[d.country.toLowerCase()]);
+    
+    svg.selectAll(".country-circle")
+      .data(countries)
+      .enter()
+      .append("circle")
+      .attr("class", "country-circle")
+      .attr("cx", d => countryPositions[d.country.toLowerCase()]?.x || 0)
+      .attr("cy", d => countryPositions[d.country.toLowerCase()]?.y || 0)
+      .attr("r", d => sizeScale(d.count))
+      .attr("fill", d => colorScale(d.count))
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2)
+      .attr("opacity", 0.8)
+      .style("cursor", "pointer")
+      .on("mouseover", function(event: any, d: any) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("stroke", "hsl(214 84% 56%)")
+          .attr("stroke-width", 3)
+          .attr("opacity", 1);
 
-          setTooltip({
-            x: event.pageX,
-            y: event.pageY,
-            country: d.properties.name,
-            count: count,
-            visible: true,
-          });
-        })
-        .on("mousemove", function(event: any) {
-          setTooltip(prev => ({
-            ...prev,
-            x: event.pageX,
-            y: event.pageY,
-          }));
-        })
-        .on("mouseout", function() {
-          d3.select(this)
-            .attr("stroke-width", 0.5)
-            .attr("stroke", "#e5e7eb");
-
-          setTooltip(prev => ({ ...prev, visible: false }));
+        setTooltip({
+          x: event.pageX,
+          y: event.pageY,
+          country: d.country,
+          count: d.count,
+          visible: true,
         });
+      })
+      .on("mousemove", function(event: any) {
+        setTooltip(prev => ({
+          ...prev,
+          x: event.pageX,
+          y: event.pageY,
+        }));
+      })
+      .on("mouseout", function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2)
+          .attr("opacity", 0.8);
 
-      toast.success("World map loaded successfully!");
-    }).catch((error) => {
-      console.error("Error loading world map:", error);
-      // Fallback: create a simple text-based display
-      svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", height / 2)
-        .attr("text-anchor", "middle")
-        .attr("font-size", "16")
-        .attr("fill", "#64748b")
-        .text("Map data temporarily unavailable");
-      
-      toast.error("Map visualization unavailable - showing data below");
-    });
+        setTooltip(prev => ({ ...prev, visible: false }));
+      });
+
+    // Add labels for major countries
+    const majorCountries = countries.filter(d => d.count >= 5);
+    
+    svg.selectAll(".country-label")
+      .data(majorCountries)
+      .enter()
+      .append("text")
+      .attr("class", "country-label")
+      .attr("x", d => countryPositions[d.country.toLowerCase()]?.x || 0)
+      .attr("y", d => (countryPositions[d.country.toLowerCase()]?.y || 0) + sizeScale(d.count) + 15)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "12")
+      .attr("font-weight", "500")
+      .attr("fill", "#374151")
+      .text(d => d.country);
+
+    toast.success("Innovation map loaded successfully!");
 
   }, [data]);
 
@@ -132,7 +174,7 @@ export const WorldMap = ({ data }: WorldMapProps) => {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-foreground">Global Innovation Map</h2>
           <p className="text-muted-foreground mt-2">
-            Countries shaded by number of innovations. Hover for details.
+            Circle size represents innovation count. Hover for details.
           </p>
         </div>
         
@@ -140,25 +182,23 @@ export const WorldMap = ({ data }: WorldMapProps) => {
           <svg
             ref={svgRef}
             className="w-full h-auto max-w-full"
-            style={{ maxHeight: "500px" }}
+            style={{ maxHeight: "400px" }}
           />
         </div>
 
         {/* Legend */}
-        <div className="mt-6 flex items-center justify-center gap-4">
-          <span className="text-sm text-muted-foreground">Fewer innovations</span>
-          <div className="flex">
-            {[0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => (
-              <div
-                key={t}
-                className="w-6 h-4"
-                style={{
-                  backgroundColor: d3.interpolateBlues(t),
-                }}
-              />
-            ))}
+        <div className="mt-6 flex items-center justify-center gap-8">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Innovation Count:</span>
+            <div className="flex items-center gap-2">
+              <circle className="w-3 h-3 rounded-full bg-blue-200"></circle>
+              <span className="text-xs">Low</span>
+              <circle className="w-4 h-4 rounded-full bg-blue-400"></circle>
+              <span className="text-xs">Medium</span>
+              <circle className="w-6 h-6 rounded-full bg-blue-600"></circle>
+              <span className="text-xs">High</span>
+            </div>
           </div>
-          <span className="text-sm text-muted-foreground">More innovations</span>
         </div>
       </div>
 
