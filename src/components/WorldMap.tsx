@@ -64,7 +64,7 @@ export const WorldMap = ({ data }: WorldMapProps) => {
     // Try multiple CDN sources for reliability
     const dataSources = [
       "https://raw.githubusercontent.com/topojson/world-atlas/master/countries-110m.json",
-      "https://cdn.jsdelivr.net/npm/world-atlas@3/countries-110m.json",
+      "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json",
       "https://unpkg.com/world-atlas@3/countries-110m.json"
     ];
 
