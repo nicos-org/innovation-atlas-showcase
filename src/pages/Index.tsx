@@ -2,13 +2,22 @@ import { useState, useEffect } from "react";
 import { InnovationBanner } from "@/components/InnovationBanner";
 import { WorldMap } from "@/components/WorldMap";
 import { CountryList } from "@/components/CountryList";
-import { loadAndProcessCSV, type CountryInnovationCount } from "@/utils/csvParser";
+import { 
+  loadAndProcessCSV, 
+  loadCategoriesAndData,
+  filterDataByCategories,
+  type CountryInnovationCount,
+  type InnovationData 
+} from "@/utils/csvParser";
 import { toast } from "sonner";
 
 const Index = () => {
   const [isMapVisible, setIsMapVisible] = useState(false);
   const [innovationData, setInnovationData] = useState<CountryInnovationCount[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [rawData, setRawData] = useState<InnovationData[]>([]);
 
   useEffect(() => {
     if (isMapVisible && innovationData.length === 0) {
@@ -16,12 +25,20 @@ const Index = () => {
     }
   }, [isMapVisible, innovationData.length]);
 
+  useEffect(() => {
+    if (rawData.length > 0) {
+      const filteredData = filterDataByCategories(rawData, selectedCategories);
+      setInnovationData(filteredData);
+    }
+  }, [rawData, selectedCategories]);
+
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await loadAndProcessCSV();
-      setInnovationData(data);
-      toast.success(`Loaded ${data.length} countries with innovation data`);
+      const { categories, rawData: data } = await loadCategoriesAndData();
+      setAvailableCategories(categories);
+      setRawData(data);
+      toast.success(`Loaded ${data.length} innovations across ${categories.length} categories`);
     } catch (error) {
       console.error("Failed to load innovation data:", error);
       toast.error("Failed to load innovation data");
@@ -32,6 +49,10 @@ const Index = () => {
 
   const handleToggleMap = () => {
     setIsMapVisible(!isMapVisible);
+  };
+
+  const handleCategoryChange = (categories: string[]) => {
+    setSelectedCategories(categories);
   };
 
   return (
@@ -58,7 +79,12 @@ const Index = () => {
             </div>
           ) : (
             <div>
-              <WorldMap data={innovationData} />
+              <WorldMap 
+                data={innovationData} 
+                availableCategories={availableCategories}
+                selectedCategories={selectedCategories}
+                onCategoryChange={handleCategoryChange}
+              />
               <CountryList data={innovationData} />
             </div>
           )}

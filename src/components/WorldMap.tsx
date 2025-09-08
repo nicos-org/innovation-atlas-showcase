@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { toast } from "sonner";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface CountryData {
   country: string;
@@ -9,9 +10,12 @@ interface CountryData {
 
 interface WorldMapProps {
   data: CountryData[];
+  availableCategories: string[];
+  selectedCategories: string[];
+  onCategoryChange: (categories: string[]) => void;
 }
 
-export const WorldMap = ({ data }: WorldMapProps) => {
+export const WorldMap = ({ data, availableCategories, selectedCategories, onCategoryChange }: WorldMapProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<{
     x: number;
@@ -261,6 +265,23 @@ export const WorldMap = ({ data }: WorldMapProps) => {
               ))}
             </div>
             <span className="text-sm text-muted-foreground">{d3.max(data, d => d.count) || 0}+</span>
+          </div>
+        </div>
+
+        {/* Category Filter */}
+        <div className="mt-6 flex flex-col items-center gap-4">
+          <h3 className="text-sm font-semibold text-foreground">Category</h3>
+          <div className="w-full max-w-md">
+            <MultiSelect
+              options={availableCategories.map(category => ({
+                label: category,
+                value: category
+              }))}
+              selected={selectedCategories}
+              onChange={onCategoryChange}
+              placeholder="Select categories to filter..."
+              className="w-full"
+            />
           </div>
         </div>
       </div>
