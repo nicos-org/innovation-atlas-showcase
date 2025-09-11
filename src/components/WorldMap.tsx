@@ -64,11 +64,13 @@ export const WorldMap = ({ data, availableCategories, selectedCategories, onCate
       countryMap.set(countryName, d.count);
     });
 
-    // Color scale
-    const maxCount = d3.max(data, d => d.count) || 1;
-    const colorScale = d3.scaleSequential()
-      .interpolator(d3.interpolateBlues)
-      .domain([0, maxCount]);
+    // Color scale - discrete categories: 1, 2, 3+
+    const getCategoryColor = (count: number) => {
+      if (count === 0) return "#f8f9fa"; // No data
+      if (count === 1) return "#dbeafe"; // Light blue for 1
+      if (count === 2) return "#60a5fa"; // Medium blue for 2
+      return "#1d4ed8"; // Dark blue for 3+
+    };
 
     // Projection
     const projection = d3.geoNaturalEarth1()
@@ -106,7 +108,7 @@ export const WorldMap = ({ data, availableCategories, selectedCategories, onCate
                                 d.properties.name?.toLowerCase() || 
                                 d.properties.NAME_EN?.toLowerCase() || "";
               const count = countryMap.get(countryName) || 0;
-              return count > 0 ? colorScale(count) : "#f8f9fa";
+              return getCategoryColor(count);
             })
             .attr("stroke", "#ffffff")
             .attr("stroke-width", 0.5)
@@ -233,7 +235,7 @@ export const WorldMap = ({ data, availableCategories, selectedCategories, onCate
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-foreground">Global Innovation Choropleth</h2>
           <p className="text-muted-foreground mt-2">
-            Countries colored by innovation density. Darker blue indicates more innovations.
+            Countries colored by innovation count categories: 1, 2, or 3+ innovations.
           </p>
           <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
             💡 Use mouse wheel to zoom in/out, click and drag to pan
@@ -250,21 +252,20 @@ export const WorldMap = ({ data, availableCategories, selectedCategories, onCate
 
         {/* Enhanced Legend */}
         <div className="mt-6 flex flex-col items-center gap-4">
-          <h3 className="text-sm font-semibold text-foreground">Innovation Count Scale</h3>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">0</span>
-            <div className="flex rounded-full overflow-hidden border shadow-sm">
-              {[0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => (
-                <div
-                  key={t}
-                  className="w-8 h-6"
-                  style={{
-                    backgroundColor: d3.interpolateBlues(t),
-                  }}
-                />
-              ))}
+          <h3 className="text-sm font-semibold text-foreground">Innovation Count Categories</h3>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded border" style={{ backgroundColor: "#dbeafe" }}></div>
+              <span className="text-sm text-muted-foreground">1</span>
             </div>
-            <span className="text-sm text-muted-foreground">{d3.max(data, d => d.count) || 0}+</span>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded border" style={{ backgroundColor: "#60a5fa" }}></div>
+              <span className="text-sm text-muted-foreground">2</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded border" style={{ backgroundColor: "#1d4ed8" }}></div>
+              <span className="text-sm text-muted-foreground">3+</span>
+            </div>
           </div>
         </div>
 

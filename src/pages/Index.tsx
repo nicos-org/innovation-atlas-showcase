@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { InnovationBanner } from "@/components/InnovationBanner";
 import { WorldMap } from "@/components/WorldMap";
+import { CategoryBarChart } from "@/components/CategoryBarChart";
 import { CountryList } from "@/components/CountryList";
 import { 
   loadAndProcessCSV, 
   loadCategoriesAndData,
   filterDataByCategories,
+  getCategoryCounts,
   type CountryInnovationCount,
-  type InnovationData 
+  type InnovationData,
+  type CategoryCount
 } from "@/utils/csvParser";
 import { toast } from "sonner";
 
@@ -18,6 +21,7 @@ const Index = () => {
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [rawData, setRawData] = useState<InnovationData[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryCount[]>([]);
 
   useEffect(() => {
     if (isMapVisible && innovationData.length === 0) {
@@ -31,6 +35,14 @@ const Index = () => {
       setInnovationData(filteredData);
     }
   }, [rawData, selectedCategories]);
+
+  // Separate effect for category data - always show all categories
+  useEffect(() => {
+    if (rawData.length > 0) {
+      const categories = getCategoryCounts(rawData);
+      setCategoryData(categories);
+    }
+  }, [rawData]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -78,13 +90,26 @@ const Index = () => {
               </div>
             </div>
           ) : (
-            <div>
+            <div className="space-y-8">
               <WorldMap 
                 data={innovationData} 
                 availableCategories={availableCategories}
                 selectedCategories={selectedCategories}
                 onCategoryChange={handleCategoryChange}
               />
+              
+              {/* Dashboard Section */}
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-3xl font-bold text-foreground mb-2">Innovation Dashboard</h2>
+                  <p className="text-muted-foreground">
+                    Comprehensive analysis of regulatory innovations across categories and countries
+                  </p>
+                </div>
+                
+                <CategoryBarChart data={categoryData} />
+              </div>
+              
               <CountryList data={innovationData} />
             </div>
           )}

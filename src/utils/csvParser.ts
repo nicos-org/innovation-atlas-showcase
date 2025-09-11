@@ -20,6 +20,11 @@ export interface CategoryData {
   rawData: InnovationData[];
 }
 
+export interface CategoryCount {
+  category: string;
+  count: number;
+}
+
 export async function loadAndProcessCSV(): Promise<CountryInnovationCount[]> {
   try {
     const response = await fetch('/innovations.csv');
@@ -62,14 +67,37 @@ export async function loadAndProcessCSV(): Promise<CountryInnovationCount[]> {
   }
 }
 
+// Helper function to parse CSV line properly handling quoted fields
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current.trim());
+  return result;
+}
+
 export async function loadCategoriesAndData(): Promise<CategoryData> {
   try {
     const response = await fetch('/innovations.csv');
     const csvText = await response.text();
     
-    // Parse CSV manually (simple implementation)
+    // Parse CSV properly handling quoted fields
     const lines = csvText.trim().split('\n');
-    const headers = lines[0].split(',');
+    const headers = parseCSVLine(lines[0]);
     const countryIndex = headers.indexOf('country');
     const categoryIndex = headers.indexOf('category');
     const agencyIndex = headers.indexOf('agency');
@@ -88,7 +116,7 @@ export async function loadCategoriesAndData(): Promise<CategoryData> {
     const rawData: InnovationData[] = [];
     
     for (let i = 1; i < lines.length; i++) {
-      const columns = lines[i].split(',');
+      const columns = parseCSVLine(lines[i]);
       if (columns.length > Math.max(countryIndex, categoryIndex)) {
         const country = columns[countryIndex]?.trim() || '';
         const category = columns[categoryIndex]?.trim() || '';
@@ -154,6 +182,24 @@ export function filterDataByCategories(
   return Array.from(countryCount.entries())
     .map(([country, count]) => ({
       country: country.charAt(0).toUpperCase() + country.slice(1),
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+export function getCategoryCounts(rawData: InnovationData[]): CategoryCount[] {
+  const categoryCount = new Map<string, number>();
+  
+  rawData.forEach(item => {
+    const category = item.category;
+    if (category) {
+      categoryCount.set(category, (categoryCount.get(category) || 0) + 1);
+    }
+  });
+  
+  return Array.from(categoryCount.entries())
+    .map(([category, count]) => ({
+      category,
       count,
     }))
     .sort((a, b) => b.count - a.count);
