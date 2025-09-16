@@ -1,6 +1,7 @@
 export interface InnovationData {
   agency: string;
   country: string;
+  name: string;
   project: string;
   category: string;
   technical_innovation: string;
@@ -23,6 +24,12 @@ export interface CategoryData {
 export interface CategoryCount {
   category: string;
   count: number;
+}
+
+export interface TimelineData {
+  year: string;
+  count: number;
+  projects: string[];
 }
 
 export async function loadAndProcessCSV(): Promise<CountryInnovationCount[]> {
@@ -98,12 +105,15 @@ export async function loadCategoriesAndData(): Promise<CategoryData> {
     // Parse CSV properly handling quoted fields
     const lines = csvText.trim().split('\n');
     const headers = parseCSVLine(lines[0]);
+    
     const countryIndex = headers.indexOf('country');
     const categoryIndex = headers.indexOf('category');
     const agencyIndex = headers.indexOf('agency');
+    const nameIndex = headers.indexOf('name');
     const projectIndex = headers.indexOf('project');
     const technicalInnovationIndex = headers.indexOf('technical_innovation');
     const innovationX5Index = headers.indexOf('innovation_x5');
+    const innovationAnalysisIndex = headers.indexOf('innovation_analysis');
     const whenIndex = headers.indexOf('When?');
     const stillActiveIndex = headers.indexOf('still_active?');
     const sourceIndex = headers.indexOf('source');
@@ -120,17 +130,20 @@ export async function loadCategoriesAndData(): Promise<CategoryData> {
       if (columns.length > Math.max(countryIndex, categoryIndex)) {
         const country = columns[countryIndex]?.trim() || '';
         const category = columns[categoryIndex]?.trim() || '';
+        const when = columns[whenIndex]?.trim() || '';
+        
         
         if (country && category) {
           categories.add(category);
           rawData.push({
             agency: columns[agencyIndex]?.trim() || '',
             country: country,
+            name: columns[nameIndex]?.trim() || '',
             project: columns[projectIndex]?.trim() || '',
             category: category,
             technical_innovation: columns[technicalInnovationIndex]?.trim() || '',
             innovation_x5: columns[innovationX5Index]?.trim() || '',
-            when: columns[whenIndex]?.trim() || '',
+            when: when,
             still_active: columns[stillActiveIndex]?.trim() || '',
             source: columns[sourceIndex]?.trim() || '',
           });
@@ -203,4 +216,29 @@ export function getCategoryCounts(rawData: InnovationData[]): CategoryCount[] {
       count,
     }))
     .sort((a, b) => b.count - a.count);
+}
+
+export function getTimelineData(rawData: InnovationData[]): TimelineData[] {
+  const yearData = new Map<string, { count: number; projects: string[] }>();
+  
+  rawData.forEach((item) => {
+    const year = item.when?.trim();
+    // Only include valid years (4 digits)
+    if (year && /^\d{4}$/.test(year)) {
+      const existing = yearData.get(year) || { count: 0, projects: [] };
+      existing.count += 1;
+      if (item.name && item.name.trim() !== '') {
+        existing.projects.push(item.name.trim());
+      }
+      yearData.set(year, existing);
+    }
+  });
+  
+  return Array.from(yearData.entries())
+    .map(([year, data]) => ({
+      year,
+      count: data.count,
+      projects: data.projects,
+    }))
+    .sort((a, b) => a.year.localeCompare(b.year));
 }

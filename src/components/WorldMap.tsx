@@ -233,12 +233,9 @@ export const WorldMap = ({ data, availableCategories, selectedCategories, onCate
     <div className="relative w-full">
       <div className="bg-card rounded-xl shadow-soft p-6 innovation-glow">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Global Innovation Choropleth</h2>
+          <h2 className="text-2xl font-bold text-foreground">Global overview</h2>
           <p className="text-muted-foreground mt-2">
             Countries colored by innovation count categories: 1, 2, or 3+ innovations.
-          </p>
-          <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-            💡 Use mouse wheel to zoom in/out, click and drag to pan
           </p>
         </div>
         
@@ -248,6 +245,13 @@ export const WorldMap = ({ data, availableCategories, selectedCategories, onCate
             className="w-full h-auto max-w-full"
             style={{ maxHeight: "500px" }}
           />
+        </div>
+        
+        {/* Mouse wheel instruction - positioned below map on the right */}
+        <div className="mt-4 flex justify-end">
+          <p className="text-sm text-blue-600 dark:text-blue-400">
+            💡 Use mouse wheel to zoom in/out, click and drag to pan
+          </p>
         </div>
 
         {/* Enhanced Legend */}
